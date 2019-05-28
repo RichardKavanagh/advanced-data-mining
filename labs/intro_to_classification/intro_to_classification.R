@@ -10,19 +10,22 @@ set.seed(1337)
 
 titanic_data <- read.csv("titanic.csv", header=T, na.strings=c(""), stringsAsFactors = T)
 
-# extract 
+# extract survived array
 y <- titanic_data$Survived
 table(y)
 
+# convert 1/- to No/Yes values
 y <-factor(y, levels =c(0,1), labels =c("No", "Yes"))
 table(y)
 
+# proportion of values
 prop.table(table(y))
 
 barplot(table(y), main = "Distribution of Titanic Surivial", ylab="Frequency")
 
-# randomly select 25% of dataset for testing
-index <-sample(1:length(y),length(y) * .25, replace=FALSE)
+
+# ------ randomly select 25% of dataset for testing ------ 
+index <- sample(1:length(y),length(y) * .25, replace=FALSE)
 testing <- y[index]
 
 
@@ -47,7 +50,6 @@ prop.table(table(testing))
 
 
 # build and evaluate 1000 models
-
 perish <- c()
 coin <- c()
 
@@ -70,6 +72,51 @@ summary(results)
 
 
 ggplot(melt(results), mapping = aes (fill = variable, x = value)) + geom_density (alpha = .5)
-
-
 boxplot(results)
+
+
+# ------ Using independent variables,  lets assume gender playes a role # ------ 
+
+df <- titanic_data[, c("Survived", "Sex")]
+df$Survived <- factor(df$Survived, levels = c(0,1), labels = c("No", "Yes")) 
+
+
+index <- sample(1:dim(df)[1], dim(df)[1] * .75, replace=FALSE)
+
+# split before and after index to get training & testing subsets
+training <- df[index, ]
+testing <- df[-index, ]
+
+
+table(training$Survived, training$Sex)
+
+
+predictSurvival <- function(data) { 
+  model <- rep("No", dim(data)[1]) 
+  model[data$Sex == 'female'] <- "Yes" 
+  return(model) 
+}
+
+women <- c()
+
+for (i in 1:1000) {
+  index <- sample(1:dim(df)[1], dim(df)[1] * .75, replace=FALSE) 
+  testing <- df[-index, ]
+
+  womenModel <- predictSurvival(testing)
+  women[i] <- 1 - mean(womenModel != testing$Survived)
+}
+
+results$`Women Accuracy` <- women 
+names(results) <- c("Coin", "All Perish", "Women")
+boxplot(results)
+
+
+# ------ other independent variables age, passanger-class and (woman + children) ------
+
+
+
+
+
+
+
